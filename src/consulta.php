@@ -1,4 +1,6 @@
-<?php namespace Rodrigore\SIIChile;
+<?php
+
+namespace Rodrigore\SIIChile;
 
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
@@ -12,7 +14,9 @@ class Consulta
     public function __construct($rut)
     {
         $this->rut = new Rut($rut);
-        $this->client = new Client;
+        $this->client = new Client([
+            'verify' => 'C:\wamp64\www\ayala\sii-chile\sii_chile\src\cacert.pem',
+        ]);
     }
 
     public function sii()
@@ -23,7 +27,7 @@ class Consulta
     private function fetch()
     {
         $captcha = $this->fetchCaptcha();
-        $request = $this->client->post('https://zeus.sii.cl/cvc_cgi/stc/getstc', ['body' => [
+        $request = $this->client->post('https://zeus.sii.cl/cvc_cgi/stc/getstc', ['form_params' => [
             'RUT' => $this->rut->number,
             'DV'  => $this->rut->code,
             'PRG' => 'STC',
@@ -36,12 +40,22 @@ class Consulta
 
     private function fetchCaptcha()
     {
-        $request = $this->client->post('https://zeus.sii.cl/cvc_cgi/stc/CViewCaptcha.cgi', ['body' => ['oper' => 0]]);
-        $json = $request->json();
+        $response = $this->client->post('https://zeus.sii.cl/cvc_cgi/stc/CViewCaptcha.cgi', ['form_params' => ['oper' => 0]]);
+        $body = $response->getBody()->getContents();
+        $json = json_decode($body, true);
+
+        // Verificar si la decodificación JSON fue exitosa
+        if ($json === null) {
+            throw new \Exception('Error al decodificar la respuesta JSON');
+        }
+
+        // Extraer los datos necesarios del JSON
         $code = substr(base64_decode($json["txtCaptcha"]), 36, 4);
         $captcha = $json["txtCaptcha"];
+
         return [$code, $captcha];
     }
+
 
     private function parse($html)
     {
