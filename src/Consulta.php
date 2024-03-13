@@ -15,7 +15,7 @@ class Consulta
     {
         $this->rut = new Rut($rut);
         $this->client = new Client([
-            'verify' => 'C:\wamp64\www\ayala\sii-chile\sii_chile\src\cacert.pem',
+            'verify' => __DIR__ . DIRECTORY_SEPARATOR . 'cacert.pem',
         ]);
     }
 
